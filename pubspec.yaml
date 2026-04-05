@@ -1,0 +1,45 @@
+name: listen
+description: "Offline audio player - podcasts, free music, and local files"
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.10.8
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # Routing
+  go_router: ^14.8.1
+
+  # Audio
+  just_audio: ^0.9.43
+  audio_service: ^0.18.17
+
+  # Local Storage
+  drift: ^2.23.1
+  sqlite3_flutter_libs: ^0.5.30
+  path_provider: ^2.1.5
+  path: ^1.9.1
+
+  # File Handling
+  file_picker: ^9.2.1
+
+  # UI
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  riverpod_generator: ^2.6.3
+  drift_dev: ^2.23.1
+  build_runner: ^2.4.14
+
+flutter:
+  uses-material-design: true
