@@ -60,10 +60,12 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> updateLastPlayed(int id) async {
+    final track = await (select(audioTracks)..where((t) => t.id.equals(id)))
+        .getSingle();
     await (update(audioTracks)..where((t) => t.id.equals(id))).write(
       AudioTracksCompanion(
         lastPlayedAt: Value(DateTime.now()),
-        playCount: audioTracks.playCount + const Constant(1),
+        playCount: Value(track.playCount + 1),
       ),
     );
   }
