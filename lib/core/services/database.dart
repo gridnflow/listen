@@ -70,6 +70,11 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  Future<AudioTrack?> findTrackByPath(String path) async {
+    return (select(audioTracks)..where((t) => t.filePath.equals(path)))
+        .getSingleOrNull();
+  }
+
   // --- Playlist queries ---
 
   Future<List<Playlist>> getAllPlaylists() => select(playlists).get();

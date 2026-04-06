@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../shared/providers/audio_provider.dart';
 import '../../../shared/providers/library_provider.dart';
@@ -12,41 +11,71 @@ class LibraryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tracksAsync = ref.watch(allTracksProvider);
+    final libraryState = ref.watch(libraryProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Library'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.phone_android),
+            tooltip: 'Scan device audio',
+            onPressed: libraryState.isScanning
+                ? null
+                : () async {
+                    final count = await ref
+                        .read(libraryProvider.notifier)
+                        .scanDeviceAudio();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Found $count new tracks')),
+                      );
+                    }
+                  },
+          ),
+          IconButton(
             icon: const Icon(Icons.add),
+            tooltip: 'Import files',
             onPressed: () => ref.read(libraryProvider.notifier).importFiles(),
           ),
         ],
       ),
-      body: tracksAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
-        data: (tracks) {
-          if (tracks.isEmpty) {
-            return const _EmptyLibrary();
-          }
-          return ListView.builder(
-            itemCount: tracks.length,
-            itemBuilder: (context, index) {
-              final track = tracks[index];
-              return TrackListTile(
-                track: track,
-                onTap: () {
-                  ref.read(audioProvider.notifier).playTrack(track);
-                  context.push('/player');
-                },
-                onDelete: () =>
-                    ref.read(libraryProvider.notifier).deleteTrack(track),
-              );
-            },
-          );
-        },
-      ),
+      body: libraryState.isScanning
+          ? const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Scanning device audio...'),
+                ],
+              ),
+            )
+          : tracksAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text('Error: $e')),
+              data: (tracks) {
+                if (tracks.isEmpty) {
+                  return const _EmptyLibrary();
+                }
+                return ListView.builder(
+                  itemCount: tracks.length,
+                  itemBuilder: (context, index) {
+                    final track = tracks[index];
+                    return TrackListTile(
+                      track: track,
+                      onTap: () {
+                        ref
+                            .read(audioProvider.notifier)
+                            .playQueue(tracks, startIndex: index);
+                      },
+                      onDelete: () =>
+                          ref.read(libraryProvider.notifier).deleteTrack(track),
+                    );
+                  },
+                );
+              },
+            ),
     );
   }
 }
@@ -72,7 +101,8 @@ class _EmptyLibrary extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Tap + to import audio files',
+            'Tap the phone icon to scan device audio\nor + to import files',
+            textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),

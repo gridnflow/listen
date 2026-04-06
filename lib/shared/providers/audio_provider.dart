@@ -1,3 +1,4 @@
+import 'package:audio_service/audio_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 
@@ -9,6 +10,7 @@ class PlayerState {
   final int queueIndex;
   final bool isPlaying;
   final Duration duration;
+  final Duration position;
 
   const PlayerState({
     this.currentTrack,
@@ -16,6 +18,7 @@ class PlayerState {
     this.queueIndex = 0,
     this.isPlaying = false,
     this.duration = Duration.zero,
+    this.position = Duration.zero,
   });
 
   PlayerState copyWith({
@@ -24,6 +27,7 @@ class PlayerState {
     int? queueIndex,
     bool? isPlaying,
     Duration? duration,
+    Duration? position,
   }) {
     return PlayerState(
       currentTrack: currentTrack ?? this.currentTrack,
@@ -31,35 +35,117 @@ class PlayerState {
       queueIndex: queueIndex ?? this.queueIndex,
       isPlaying: isPlaying ?? this.isPlaying,
       duration: duration ?? this.duration,
+      position: position ?? this.position,
     );
   }
 }
 
-class AudioNotifier extends StateNotifier<PlayerState> {
+class ListenAudioHandler extends BaseAudioHandler with SeekHandler {
   final AudioPlayer _player = AudioPlayer();
 
-  AudioNotifier() : super(const PlayerState()) {
-    _player.playerStateStream.listen((playerState) {
-      state = state.copyWith(isPlaying: playerState.playing);
-    });
-    _player.durationStream.listen((duration) {
-      if (duration != null) {
-        state = state.copyWith(duration: duration);
-      }
-    });
-    _player.processingStateStream.listen((processingState) {
-      if (processingState == ProcessingState.completed) {
-        playNext();
+  ListenAudioHandler() {
+    _player.playbackEventStream.listen(_broadcastState);
+    _player.processingStateStream.listen((state) {
+      if (state == ProcessingState.completed) {
+        _onTrackCompleted?.call();
       }
     });
   }
 
-  Stream<Duration> get positionStream => _player.positionStream;
+  AudioPlayer get player => _player;
+  void Function()? _onTrackCompleted;
+
+  set onTrackCompleted(void Function()? callback) {
+    _onTrackCompleted = callback;
+  }
+
+  Future<void> setTrack(AudioTrack track) async {
+    await _player.setFilePath(track.filePath);
+
+    mediaItem.add(MediaItem(
+      id: track.filePath,
+      title: track.title,
+      artist: track.artist,
+      duration: Duration(milliseconds: track.durationMs),
+    ));
+  }
+
+  @override
+  Future<void> play() => _player.play();
+
+  @override
+  Future<void> pause() => _player.pause();
+
+  @override
+  Future<void> stop() async {
+    await _player.stop();
+    await super.stop();
+  }
+
+  @override
+  Future<void> seek(Duration position) => _player.seek(position);
+
+  @override
+  Future<void> skipToNext() async {
+    _onTrackCompleted?.call();
+  }
+
+  void _broadcastState(PlaybackEvent event) {
+    playbackState.add(playbackState.value.copyWith(
+      controls: [
+        MediaControl.skipToPrevious,
+        if (_player.playing) MediaControl.pause else MediaControl.play,
+        MediaControl.skipToNext,
+      ],
+      systemActions: const {
+        MediaAction.seek,
+        MediaAction.seekForward,
+        MediaAction.seekBackward,
+      },
+      androidCompactActionIndices: const [0, 1, 2],
+      processingState: const {
+        ProcessingState.idle: AudioProcessingState.idle,
+        ProcessingState.loading: AudioProcessingState.loading,
+        ProcessingState.buffering: AudioProcessingState.buffering,
+        ProcessingState.ready: AudioProcessingState.ready,
+        ProcessingState.completed: AudioProcessingState.completed,
+      }[_player.processingState]!,
+      playing: _player.playing,
+      updatePosition: _player.position,
+      bufferedPosition: _player.bufferedPosition,
+      speed: _player.speed,
+    ));
+  }
+
+  Future<void> dispose() async {
+    await _player.dispose();
+  }
+}
+
+class AudioNotifier extends StateNotifier<PlayerState> {
+  final ListenAudioHandler _handler;
+
+  AudioNotifier(this._handler) : super(const PlayerState()) {
+    _handler.player.playerStateStream.listen((playerState) {
+      state = state.copyWith(isPlaying: playerState.playing);
+    });
+    _handler.player.durationStream.listen((duration) {
+      if (duration != null) {
+        state = state.copyWith(duration: duration);
+      }
+    });
+    _handler.player.positionStream.listen((position) {
+      state = state.copyWith(position: position);
+    });
+    _handler.onTrackCompleted = playNext;
+  }
+
+  Stream<Duration> get positionStream => _handler.player.positionStream;
 
   Future<void> playTrack(AudioTrack track) async {
     state = state.copyWith(currentTrack: track);
-    await _player.setFilePath(track.filePath);
-    await _player.play();
+    await _handler.setTrack(track);
+    await _handler.play();
     AppDatabase.instance.updateLastPlayed(track.id);
   }
 
@@ -71,15 +157,15 @@ class AudioNotifier extends StateNotifier<PlayerState> {
   }
 
   Future<void> togglePlayPause() async {
-    if (_player.playing) {
-      await _player.pause();
+    if (_handler.player.playing) {
+      await _handler.pause();
     } else {
-      await _player.play();
+      await _handler.play();
     }
   }
 
   Future<void> seek(Duration position) async {
-    await _player.seek(position);
+    await _handler.seek(position);
   }
 
   Future<void> playNext() async {
@@ -89,7 +175,7 @@ class AudioNotifier extends StateNotifier<PlayerState> {
       state = state.copyWith(queueIndex: nextIndex);
       await playTrack(state.queue[nextIndex]);
     } else {
-      await _player.stop();
+      await _handler.stop();
       state = state.copyWith(isPlaying: false);
     }
   }
@@ -101,17 +187,23 @@ class AudioNotifier extends StateNotifier<PlayerState> {
       state = state.copyWith(queueIndex: prevIndex);
       await playTrack(state.queue[prevIndex]);
     } else {
-      await _player.seek(Duration.zero);
+      await _handler.seek(Duration.zero);
     }
   }
 
   @override
   void dispose() {
-    _player.dispose();
+    _handler.dispose();
     super.dispose();
   }
 }
 
-final audioProvider = StateNotifierProvider<AudioNotifier, PlayerState>((ref) {
-  return AudioNotifier();
+final audioHandlerProvider = Provider<ListenAudioHandler>((ref) {
+  throw UnimplementedError('Must be overridden in main.dart');
+});
+
+final audioProvider =
+    StateNotifierProvider<AudioNotifier, PlayerState>((ref) {
+  final handler = ref.watch(audioHandlerProvider);
+  return AudioNotifier(handler);
 });
