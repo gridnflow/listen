@@ -104,7 +104,14 @@ class AppDatabase extends _$AppDatabase {
     return rows.map((row) => row.readTable(audioTracks)).toList();
   }
 
-  Future<void> addTrackToPlaylist(int playlistId, int trackId) async {
+  Future<bool> addTrackToPlaylist(int playlistId, int trackId) async {
+    // Check for duplicate
+    final existing = await (select(playlistTracks)
+          ..where(
+              (pt) => pt.playlistId.equals(playlistId) & pt.trackId.equals(trackId)))
+        .getSingleOrNull();
+    if (existing != null) return false;
+
     final count = await (select(playlistTracks)
           ..where((pt) => pt.playlistId.equals(playlistId)))
         .get();
@@ -115,6 +122,7 @@ class AppDatabase extends _$AppDatabase {
         position: count.length,
       ),
     );
+    return true;
   }
 }
 

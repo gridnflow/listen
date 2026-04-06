@@ -85,9 +85,20 @@ class ListenAudioHandler extends BaseAudioHandler with SeekHandler {
   @override
   Future<void> seek(Duration position) => _player.seek(position);
 
+  void Function()? _onSkipToPrevious;
+
+  set onSkipToPrevious(void Function()? callback) {
+    _onSkipToPrevious = callback;
+  }
+
   @override
   Future<void> skipToNext() async {
     _onTrackCompleted?.call();
+  }
+
+  @override
+  Future<void> skipToPrevious() async {
+    _onSkipToPrevious?.call();
   }
 
   void _broadcastState(PlaybackEvent event) {
@@ -138,6 +149,7 @@ class AudioNotifier extends StateNotifier<PlayerState> {
       state = state.copyWith(position: position);
     });
     _handler.onTrackCompleted = playNext;
+    _handler.onSkipToPrevious = playPrevious;
   }
 
   Stream<Duration> get positionStream => _handler.player.positionStream;
@@ -166,6 +178,11 @@ class AudioNotifier extends StateNotifier<PlayerState> {
 
   Future<void> seek(Duration position) async {
     await _handler.seek(position);
+  }
+
+  Future<void> stop() async {
+    await _handler.stop();
+    state = const PlayerState();
   }
 
   Future<void> playNext() async {

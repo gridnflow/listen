@@ -60,7 +60,7 @@ class PlaylistsScreen extends ConsumerWidget {
 
   void _showCreateDialog(BuildContext context) {
     final controller = TextEditingController();
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('New Playlist'),
@@ -93,7 +93,7 @@ class PlaylistsScreen extends ConsumerWidget {
           ),
         ],
       ),
-    );
+    ).then((_) => controller.dispose());
   }
 
   void _confirmDelete(BuildContext context, Playlist playlist) {

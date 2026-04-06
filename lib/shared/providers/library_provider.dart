@@ -3,10 +3,12 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 
 import '../../core/services/database.dart';
 import '../../core/services/permission_service.dart';
+import 'audio_provider.dart';
 
 class LibraryState {
   final bool isScanning;
@@ -20,8 +22,9 @@ class LibraryState {
 
 class LibraryNotifier extends StateNotifier<LibraryState> {
   final OnAudioQuery _audioQuery = OnAudioQuery();
+  final Ref _ref;
 
-  LibraryNotifier() : super(const LibraryState());
+  LibraryNotifier(this._ref) : super(const LibraryState());
 
   Future<void> importFiles() async {
     final result = await FilePicker.platform.pickFiles(
@@ -43,11 +46,21 @@ class LibraryNotifier extends StateNotifier<LibraryState> {
       final existing = await db.findTrackByPath(file.path!);
       if (existing != null) continue;
 
+      // Try to get duration using just_audio
+      int durationMs = 0;
+      try {
+        final player = AudioPlayer();
+        final duration = await player.setFilePath(file.path!);
+        durationMs = duration?.inMilliseconds ?? 0;
+        await player.dispose();
+      } catch (_) {}
+
       await db.insertTrack(
         AudioTracksCompanion.insert(
           title: fileName,
           filePath: file.path!,
           fileSize: Value(file.size),
+          durationMs: Value(durationMs),
         ),
       );
     }
@@ -95,6 +108,12 @@ class LibraryNotifier extends StateNotifier<LibraryState> {
   }
 
   Future<void> deleteTrack(AudioTrack track) async {
+    // Stop playback if deleting the currently playing track
+    final playerState = _ref.read(audioProvider);
+    if (playerState.currentTrack?.id == track.id) {
+      await _ref.read(audioProvider.notifier).stop();
+    }
+
     final db = AppDatabase.instance;
     await db.deleteTrack(track.id);
 
@@ -108,7 +127,7 @@ class LibraryNotifier extends StateNotifier<LibraryState> {
 
 final libraryProvider =
     StateNotifierProvider<LibraryNotifier, LibraryState>((ref) {
-  return LibraryNotifier();
+  return LibraryNotifier(ref);
 });
 
 final allTracksProvider = StreamProvider<List<AudioTrack>>((ref) {

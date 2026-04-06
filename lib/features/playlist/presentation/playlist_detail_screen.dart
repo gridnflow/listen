@@ -13,8 +13,8 @@ final playlistTracksProvider =
 final playlistNameProvider =
     FutureProvider.family<String, int>((ref, playlistId) async {
   final playlists = await AppDatabase.instance.getAllPlaylists();
-  final playlist = playlists.firstWhere((p) => p.id == playlistId);
-  return playlist.name;
+  final playlist = playlists.where((p) => p.id == playlistId).firstOrNull;
+  return playlist?.name ?? 'Playlist';
 });
 
 class PlaylistDetailScreen extends ConsumerWidget {
@@ -130,13 +130,15 @@ class PlaylistDetailScreen extends ConsumerWidget {
                     trailing: IconButton(
                       icon: const Icon(Icons.add_circle_outline),
                       onPressed: () async {
-                        await AppDatabase.instance
+                        final added = await AppDatabase.instance
                             .addTrackToPlaylist(playlistId, track.id);
                         ref.invalidate(playlistTracksProvider(playlistId));
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Added "${track.title}"'),
+                              content: Text(added
+                                  ? 'Added "${track.title}"'
+                                  : '"${track.title}" already in playlist'),
                               duration: const Duration(seconds: 1),
                             ),
                           );
