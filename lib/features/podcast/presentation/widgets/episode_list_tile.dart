@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/services/database.dart';
 
@@ -96,12 +97,23 @@ class EpisodeListTile extends StatelessWidget {
               onPressed: onDownload,
             ),
           IconButton(
+            icon: const Icon(Icons.youtube_searched_for),
+            tooltip: 'Search on YouTube',
+            onPressed: () => _searchYoutube(episode.title),
+          ),
+          IconButton(
             icon: const Icon(Icons.play_circle_outline),
             onPressed: onPlay,
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _searchYoutube(String title) async {
+    final query = Uri.encodeQueryComponent(title);
+    final url = Uri.parse('https://www.youtube.com/results?search_query=$query');
+    await launchUrl(url, mode: LaunchMode.externalApplication);
   }
 
   String _formatDuration(Duration d) {

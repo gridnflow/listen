@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/services/database.dart';
 
@@ -36,14 +37,32 @@ class TrackListTile extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: onDelete != null
-          ? IconButton(
-              icon: const Icon(Icons.delete_outline),
-              onPressed: () => _confirmDelete(context),
-            )
-          : null,
+      trailing: SizedBox(
+        width: onDelete != null ? 96 : 48,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.youtube_searched_for),
+              tooltip: 'Search on YouTube',
+              onPressed: () => _searchYoutube(track.title, track.artist),
+            ),
+            if (onDelete != null)
+              IconButton(
+                icon: const Icon(Icons.delete_outline),
+                onPressed: () => _confirmDelete(context),
+              ),
+          ],
+        ),
+      ),
       onTap: onTap,
     );
+  }
+
+  Future<void> _searchYoutube(String title, String artist) async {
+    final query = Uri.encodeQueryComponent('$title $artist');
+    final url = Uri.parse('https://www.youtube.com/results?search_query=$query');
+    await launchUrl(url, mode: LaunchMode.externalApplication);
   }
 
   void _confirmDelete(BuildContext context) {

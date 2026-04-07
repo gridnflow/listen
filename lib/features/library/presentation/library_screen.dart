@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../shared/providers/audio_provider.dart';
 import '../../../shared/providers/library_provider.dart';
@@ -17,6 +18,11 @@ class LibraryScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Library'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.youtube_searched_for),
+            tooltip: 'Download from YouTube',
+            onPressed: () => context.go('/library/youtube'),
+          ),
           IconButton(
             icon: const Icon(Icons.phone_android),
             tooltip: 'Scan device audio',

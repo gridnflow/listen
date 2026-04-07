@@ -45,7 +45,7 @@
         </activity>
         <!-- audio_service background playback -->
         <service
-            android:name="com.ryanheise.audioservice.AudioServiceActivity"
+            android:name="com.ryanheise.audioservice.AudioService"
             android:foregroundServiceType="mediaPlayback"
             android:exported="true">
             <intent-filter>
@@ -76,6 +76,10 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
         </intent>
     </queries>
 </manifest>

@@ -59,41 +59,10 @@ class PlaylistsScreen extends ConsumerWidget {
   }
 
   void _showCreateDialog(BuildContext context) {
-    final controller = TextEditingController();
     showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('New Playlist'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'Playlist name',
-          ),
-          onSubmitted: (value) {
-            if (value.trim().isNotEmpty) {
-              AppDatabase.instance.insertPlaylist(value.trim());
-              Navigator.pop(context);
-            }
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              if (controller.text.trim().isNotEmpty) {
-                AppDatabase.instance.insertPlaylist(controller.text.trim());
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('Create'),
-          ),
-        ],
-      ),
-    ).then((_) => controller.dispose());
+      builder: (context) => _CreatePlaylistDialog(),
+    );
   }
 
   void _confirmDelete(BuildContext context, Playlist playlist) {
@@ -116,6 +85,51 @@ class PlaylistsScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CreatePlaylistDialog extends StatefulWidget {
+  @override
+  State<_CreatePlaylistDialog> createState() => _CreatePlaylistDialogState();
+}
+
+class _CreatePlaylistDialogState extends State<_CreatePlaylistDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (_controller.text.trim().isNotEmpty) {
+      AppDatabase.instance.insertPlaylist(_controller.text.trim());
+      Navigator.pop(context);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('New Playlist'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: const InputDecoration(hintText: 'Playlist name'),
+        onSubmitted: (_) => _submit(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: _submit,
+          child: const Text('Create'),
+        ),
+      ],
     );
   }
 }

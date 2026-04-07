@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/library/presentation/library_screen.dart';
+import '../../features/youtube/presentation/youtube_search_screen.dart';
 import '../../features/player/presentation/player_screen.dart';
 import '../../features/playlist/presentation/playlist_detail_screen.dart';
 import '../../features/playlist/presentation/playlists_screen.dart';
@@ -22,6 +23,12 @@ final appRouter = GoRouter(
         GoRoute(
           path: '/library',
           builder: (context, state) => const LibraryScreen(),
+          routes: [
+            GoRoute(
+              path: 'youtube',
+              builder: (context, state) => const YoutubeSearchScreen(),
+            ),
+          ],
         ),
         GoRoute(
           path: '/podcasts',

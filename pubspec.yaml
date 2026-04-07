@@ -41,6 +41,8 @@ dependencies:
 
   # UI
   cupertino_icons: ^1.0.8
+  url_launcher: ^6.3.0
+  youtube_explode_dart: ^2.3.6
 
 dev_dependencies:
   flutter_test:
