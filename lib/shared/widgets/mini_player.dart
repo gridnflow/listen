@@ -11,8 +11,13 @@ class MiniPlayer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final playerState = ref.watch(audioProvider);
     final track = playerState.currentTrack;
+    final episode = playerState.currentEpisode;
 
-    if (track == null) return const SizedBox.shrink();
+    if (track == null && episode == null) return const SizedBox.shrink();
+
+    final title = track?.title ?? episode?.title ?? '';
+    final subtitle = track?.artist ?? '';
+    final isEpisode = episode != null;
 
     final theme = Theme.of(context);
     final progressPercent = playerState.duration.inMilliseconds > 0
@@ -35,7 +40,6 @@ class MiniPlayer extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Progress indicator
             LinearProgressIndicator(
               value: progressPercent.clamp(0.0, 1.0),
               minHeight: 2,
@@ -46,7 +50,6 @@ class MiniPlayer extends ConsumerWidget {
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
                 children: [
-                  // Album art placeholder
                   Container(
                     width: 40,
                     height: 40,
@@ -54,35 +57,37 @@ class MiniPlayer extends ConsumerWidget {
                       color: theme.colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: const Icon(Icons.music_note, size: 20),
+                    child: Icon(
+                      isEpisode ? Icons.podcasts : Icons.music_note,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 12),
-                  // Track info
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          track.title,
+                          title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        Text(
-                          track.artist,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
+                        if (subtitle.isNotEmpty)
+                          Text(
+                            subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ),
-                  // Play/Pause button
                   IconButton(
                     icon: Icon(
                       playerState.isPlaying
@@ -93,7 +98,6 @@ class MiniPlayer extends ConsumerWidget {
                     onPressed: () =>
                         ref.read(audioProvider.notifier).togglePlayPause(),
                   ),
-                  // Next button
                   IconButton(
                     icon: const Icon(Icons.skip_next_rounded, size: 24),
                     onPressed: () =>

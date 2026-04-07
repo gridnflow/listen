@@ -33,7 +33,39 @@ class PlaylistTracks extends Table {
   IntColumn get position => integer()();
 }
 
-@DriftDatabase(tables: [AudioTracks, Playlists, PlaylistTracks])
+class Podcasts extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get title => text()();
+  TextColumn get author => text().withDefault(const Constant(''))();
+  TextColumn get description => text().withDefault(const Constant(''))();
+  TextColumn get feedUrl => text().unique()();
+  TextColumn get artworkUrl => text().withDefault(const Constant(''))();
+  BoolColumn get autoDownload =>
+      boolean().withDefault(const Constant(false))();
+  DateTimeColumn get subscribedAt =>
+      dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get lastCheckedAt => dateTime().nullable()();
+}
+
+class Episodes extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get podcastId => integer().references(Podcasts, #id)();
+  TextColumn get title => text()();
+  TextColumn get description => text().withDefault(const Constant(''))();
+  TextColumn get audioUrl => text()();
+  TextColumn get guid => text()();
+  IntColumn get durationMs => integer().withDefault(const Constant(0))();
+  DateTimeColumn get publishedAt => dateTime().nullable()();
+  TextColumn get localFilePath => text().nullable()();
+  IntColumn get downloadProgress =>
+      integer().withDefault(const Constant(0))();
+  IntColumn get playbackPositionMs =>
+      integer().withDefault(const Constant(0))();
+  BoolColumn get isPlayed => boolean().withDefault(const Constant(false))();
+}
+
+@DriftDatabase(
+    tables: [AudioTracks, Playlists, PlaylistTracks, Podcasts, Episodes])
 class AppDatabase extends _$AppDatabase {
   AppDatabase._() : super(_openConnection());
 
@@ -41,7 +73,18 @@ class AppDatabase extends _$AppDatabase {
   static AppDatabase get instance => _instance ??= AppDatabase._();
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) => m.createAll(),
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.createTable(podcasts);
+            await m.createTable(episodes);
+          }
+        },
+      );
 
   // --- AudioTrack queries ---
 
@@ -105,10 +148,9 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<bool> addTrackToPlaylist(int playlistId, int trackId) async {
-    // Check for duplicate
     final existing = await (select(playlistTracks)
-          ..where(
-              (pt) => pt.playlistId.equals(playlistId) & pt.trackId.equals(trackId)))
+          ..where((pt) =>
+              pt.playlistId.equals(playlistId) & pt.trackId.equals(trackId)))
         .getSingleOrNull();
     if (existing != null) return false;
 
@@ -123,6 +165,114 @@ class AppDatabase extends _$AppDatabase {
       ),
     );
     return true;
+  }
+
+  // --- Podcast queries ---
+
+  Stream<List<Podcast>> watchSubscribedPodcasts() =>
+      (select(podcasts)..orderBy([(p) => OrderingTerm.desc(p.subscribedAt)]))
+          .watch();
+
+  Future<List<Podcast>> getAllPodcasts() => select(podcasts).get();
+
+  Future<Podcast?> findPodcastByFeedUrl(String feedUrl) async {
+    return (select(podcasts)..where((p) => p.feedUrl.equals(feedUrl)))
+        .getSingleOrNull();
+  }
+
+  Future<Podcast> insertPodcast(PodcastsCompanion entry) async {
+    final id = await into(podcasts).insert(entry);
+    return (select(podcasts)..where((p) => p.id.equals(id))).getSingle();
+  }
+
+  Future<void> deletePodcast(int id) async {
+    // Delete downloaded episode files
+    final eps = await (select(episodes)
+          ..where((e) => e.podcastId.equals(id)))
+        .get();
+    for (final ep in eps) {
+      if (ep.localFilePath != null) {
+        final file = File(ep.localFilePath!);
+        if (await file.exists()) await file.delete();
+      }
+    }
+    await (delete(episodes)..where((e) => e.podcastId.equals(id))).go();
+    await (delete(podcasts)..where((p) => p.id.equals(id))).go();
+  }
+
+  Future<void> updatePodcastLastChecked(int id) async {
+    await (update(podcasts)..where((p) => p.id.equals(id))).write(
+      PodcastsCompanion(lastCheckedAt: Value(DateTime.now())),
+    );
+  }
+
+  // --- Episode queries ---
+
+  Stream<List<Episode>> watchEpisodes(int podcastId) =>
+      (select(episodes)
+            ..where((e) => e.podcastId.equals(podcastId))
+            ..orderBy([(e) => OrderingTerm.desc(e.publishedAt)]))
+          .watch();
+
+  Future<List<Episode>> getEpisodes(int podcastId) =>
+      (select(episodes)
+            ..where((e) => e.podcastId.equals(podcastId))
+            ..orderBy([(e) => OrderingTerm.desc(e.publishedAt)]))
+          .get();
+
+  Future<Episode?> findEpisodeByGuid(int podcastId, String guid) async {
+    return (select(episodes)
+          ..where(
+              (e) => e.podcastId.equals(podcastId) & e.guid.equals(guid)))
+        .getSingleOrNull();
+  }
+
+  Future<Episode> insertEpisode(EpisodesCompanion entry) async {
+    final id = await into(episodes).insert(entry);
+    return (select(episodes)..where((e) => e.id.equals(id))).getSingle();
+  }
+
+  Future<void> updateEpisodeDownload(
+      int id, String localFilePath, int progress) async {
+    await (update(episodes)..where((e) => e.id.equals(id))).write(
+      EpisodesCompanion(
+        localFilePath: Value(localFilePath),
+        downloadProgress: Value(progress),
+      ),
+    );
+  }
+
+  Future<void> updateEpisodeDownloadProgress(int id, int progress) async {
+    await (update(episodes)..where((e) => e.id.equals(id))).write(
+      EpisodesCompanion(downloadProgress: Value(progress)),
+    );
+  }
+
+  Future<void> updateEpisodePlaybackPosition(int id, int positionMs) async {
+    await (update(episodes)..where((e) => e.id.equals(id))).write(
+      EpisodesCompanion(playbackPositionMs: Value(positionMs)),
+    );
+  }
+
+  Future<void> markEpisodePlayed(int id) async {
+    await (update(episodes)..where((e) => e.id.equals(id))).write(
+      const EpisodesCompanion(isPlayed: Value(true)),
+    );
+  }
+
+  Future<void> deleteEpisodeDownload(int id) async {
+    final episode =
+        await (select(episodes)..where((e) => e.id.equals(id))).getSingle();
+    if (episode.localFilePath != null) {
+      final file = File(episode.localFilePath!);
+      if (await file.exists()) await file.delete();
+    }
+    await (update(episodes)..where((e) => e.id.equals(id))).write(
+      const EpisodesCompanion(
+        localFilePath: Value(null),
+        downloadProgress: Value(0),
+      ),
+    );
   }
 }
 

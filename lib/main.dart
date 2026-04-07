@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app.dart';
 import 'core/services/database.dart';
 import 'shared/providers/audio_provider.dart';
+import 'shared/providers/podcast_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,11 +24,18 @@ void main() async {
     ),
   );
 
+  final container = ProviderContainer(
+    overrides: [
+      audioHandlerProvider.overrideWithValue(audioHandler),
+    ],
+  );
+
+  // Refresh podcast feeds on startup
+  container.read(podcastActionsProvider).refreshAllPodcasts();
+
   runApp(
-    ProviderScope(
-      overrides: [
-        audioHandlerProvider.overrideWithValue(audioHandler),
-      ],
+    UncontrolledProviderScope(
+      container: container,
       child: const ListenApp(),
     ),
   );

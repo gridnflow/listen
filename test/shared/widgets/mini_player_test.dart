@@ -46,6 +46,14 @@ class FakeAudioNotifier extends StateNotifier<PlayerState>
   @override
   Future<void> playPrevious() async {}
   @override
+  Future<void> playEpisode(Episode episode, {String? artworkUrl}) async {}
+  @override
+  Future<void> setPlaybackSpeed(double speed) async {}
+  @override
+  void startSleepTimer(Duration duration) {}
+  @override
+  void cancelSleepTimer() {}
+  @override
   Stream<Duration> get positionStream => const Stream.empty();
 }
 
@@ -71,7 +79,6 @@ void main() {
       await tester.pumpWidget(_buildTestWidget(const PlayerState()));
       await tester.pump();
 
-      // SizedBox.shrink should be rendered
       expect(find.byType(GestureDetector), findsNothing);
       expect(find.text('Test Song'), findsNothing);
     });
