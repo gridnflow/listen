@@ -21,7 +21,7 @@ class LibraryScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.youtube_searched_for),
             tooltip: 'Download from YouTube',
-            onPressed: () => context.go('/library/youtube'),
+            onPressed: () => context.push('/library/youtube'),
           ),
           IconButton(
             icon: const Icon(Icons.phone_android),

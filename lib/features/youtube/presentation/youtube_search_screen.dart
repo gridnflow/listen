@@ -1,6 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-
 import '../data/youtube_service.dart';
 
 class YoutubeSearchScreen extends StatefulWidget {
@@ -124,7 +123,7 @@ class _YoutubeSearchScreenState extends State<YoutubeSearchScreen> {
                               width: 72,
                               height: 48,
                               fit: BoxFit.cover,
-                              placeholder: (_, __) => Container(
+                              placeholder: (ctx, url) => Container(
                                 color: Theme.of(context)
                                     .colorScheme
                                     .surfaceContainerHighest,
@@ -149,7 +148,7 @@ class _YoutubeSearchScreenState extends State<YoutubeSearchScreen> {
                                   strokeWidth: 2,
                                 ),
                                 Text(
-                                  '${(progress! * 100).toInt()}%',
+                                  '${(progress * 100).toInt()}%',
                                   style: const TextStyle(fontSize: 9),
                                 ),
                               ],

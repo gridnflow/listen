@@ -11,13 +11,8 @@ class MiniPlayer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final playerState = ref.watch(audioProvider);
     final track = playerState.currentTrack;
-    final episode = playerState.currentEpisode;
 
-    if (track == null && episode == null) return const SizedBox.shrink();
-
-    final title = track?.title ?? episode?.title ?? '';
-    final subtitle = track?.artist ?? '';
-    final isEpisode = episode != null;
+    if (track == null) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
     final progressPercent = playerState.duration.inMilliseconds > 0
@@ -46,8 +41,7 @@ class MiniPlayer extends ConsumerWidget {
               backgroundColor: Colors.transparent,
             ),
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
                 children: [
                   Container(
@@ -57,10 +51,7 @@ class MiniPlayer extends ConsumerWidget {
                       color: theme.colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: Icon(
-                      isEpisode ? Icons.podcasts : Icons.music_note,
-                      size: 20,
-                    ),
+                    child: const Icon(Icons.music_note, size: 20),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -69,16 +60,16 @@ class MiniPlayer extends ConsumerWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          title,
+                          track.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        if (subtitle.isNotEmpty)
+                        if (track.artist.isNotEmpty)
                           Text(
-                            subtitle,
+                            track.artist,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.bodySmall?.copyWith(

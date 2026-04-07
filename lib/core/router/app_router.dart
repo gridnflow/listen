@@ -3,14 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/library/presentation/library_screen.dart';
-import '../../features/youtube/presentation/youtube_search_screen.dart';
 import '../../features/player/presentation/player_screen.dart';
 import '../../features/playlist/presentation/playlist_detail_screen.dart';
 import '../../features/playlist/presentation/playlists_screen.dart';
-import '../../features/podcast/presentation/podcast_detail_screen.dart';
-import '../../features/podcast/presentation/podcast_search_screen.dart';
-import '../../features/podcast/presentation/podcast_subscriptions_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
+import '../../features/youtube/presentation/youtube_search_screen.dart';
 import '../../shared/providers/audio_provider.dart';
 import '../../shared/widgets/mini_player.dart';
 
@@ -27,23 +24,6 @@ final appRouter = GoRouter(
             GoRoute(
               path: 'youtube',
               builder: (context, state) => const YoutubeSearchScreen(),
-            ),
-          ],
-        ),
-        GoRoute(
-          path: '/podcasts',
-          builder: (context, state) => const PodcastSubscriptionsScreen(),
-          routes: [
-            GoRoute(
-              path: 'search',
-              builder: (context, state) => const PodcastSearchScreen(),
-            ),
-            GoRoute(
-              path: ':id',
-              builder: (context, state) {
-                final id = int.parse(state.pathParameters['id']!);
-                return PodcastDetailScreen(podcastId: id);
-              },
             ),
           ],
         ),
@@ -81,8 +61,7 @@ class ScaffoldWithNav extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final playerState = ref.watch(audioProvider);
-    final hasTrack =
-        playerState.currentTrack != null || playerState.currentEpisode != null;
+    final hasTrack = playerState.currentTrack != null;
 
     return Scaffold(
       body: child,
@@ -98,11 +77,6 @@ class ScaffoldWithNav extends ConsumerWidget {
                 icon: Icon(Icons.library_music_outlined),
                 selectedIcon: Icon(Icons.library_music),
                 label: 'Library',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.podcasts_outlined),
-                selectedIcon: Icon(Icons.podcasts),
-                label: 'Podcasts',
               ),
               NavigationDestination(
                 icon: Icon(Icons.playlist_play_outlined),
@@ -124,9 +98,8 @@ class ScaffoldWithNav extends ConsumerWidget {
   int _calculateSelectedIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.path;
     if (location.startsWith('/library')) return 0;
-    if (location.startsWith('/podcasts')) return 1;
-    if (location.startsWith('/playlists')) return 2;
-    if (location.startsWith('/settings')) return 3;
+    if (location.startsWith('/playlists')) return 1;
+    if (location.startsWith('/settings')) return 2;
     return 0;
   }
 
@@ -135,10 +108,8 @@ class ScaffoldWithNav extends ConsumerWidget {
       case 0:
         context.go('/library');
       case 1:
-        context.go('/podcasts');
-      case 2:
         context.go('/playlists');
-      case 3:
+      case 2:
         context.go('/settings');
     }
   }

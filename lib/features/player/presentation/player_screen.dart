@@ -9,9 +9,7 @@ class PlayerScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final playerState = ref.watch(audioProvider);
-    final isEpisode = playerState.isPlayingEpisode;
-    final title =
-        playerState.currentTrack?.title ?? playerState.currentEpisode?.title ?? 'No track';
+    final title = playerState.currentTrack?.title ?? 'No track';
     final subtitle = playerState.currentTrack?.artist ?? '';
 
     return Scaffold(
@@ -20,14 +18,8 @@ class PlayerScreen extends ConsumerWidget {
           icon: const Icon(Icons.keyboard_arrow_down),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(isEpisode ? 'Now Playing - Podcast' : 'Now Playing'),
+        title: const Text('Now Playing'),
         actions: [
-          if (isEpisode)
-            IconButton(
-              icon: const Icon(Icons.speed),
-              tooltip: 'Playback speed',
-              onPressed: () => _showSpeedSheet(context, ref),
-            ),
           IconButton(
             icon: Icon(
               playerState.sleepTimerRemaining != null
@@ -44,7 +36,6 @@ class PlayerScreen extends ConsumerWidget {
         child: Column(
           children: [
             const Spacer(),
-            // Album art placeholder
             Container(
               width: 280,
               height: 280,
@@ -53,13 +44,12 @@ class PlayerScreen extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(
-                isEpisode ? Icons.podcasts : Icons.music_note,
+                Icons.music_note,
                 size: 80,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const Spacer(),
-            // Track info
             Text(
               title,
               style: Theme.of(context).textTheme.headlineSmall,
@@ -84,17 +74,7 @@ class PlayerScreen extends ConsumerWidget {
                     ),
               ),
             ],
-            if (isEpisode && playerState.playbackSpeed != 1.0) ...[
-              const SizedBox(height: 4),
-              Text(
-                '${playerState.playbackSpeed}x',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-              ),
-            ],
             const SizedBox(height: 24),
-            // Progress bar
             StreamBuilder<Duration>(
               stream: ref.read(audioProvider.notifier).positionStream,
               builder: (context, snapshot) {
@@ -131,32 +111,15 @@ class PlayerScreen extends ConsumerWidget {
               },
             ),
             const SizedBox(height: 24),
-            // Controls
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (isEpisode)
-                  // 30s rewind for podcasts
-                  IconButton(
-                    iconSize: 32,
-                    icon: const Icon(Icons.replay_30),
-                    onPressed: () {
-                      final newPos = playerState.position -
-                          const Duration(seconds: 30);
-                      ref.read(audioProvider.notifier).seek(
-                            newPos < Duration.zero
-                                ? Duration.zero
-                                : newPos,
-                          );
-                    },
-                  )
-                else
-                  IconButton(
-                    iconSize: 36,
-                    icon: const Icon(Icons.skip_previous),
-                    onPressed: () =>
-                        ref.read(audioProvider.notifier).playPrevious(),
-                  ),
+                IconButton(
+                  iconSize: 36,
+                  icon: const Icon(Icons.skip_previous),
+                  onPressed: () =>
+                      ref.read(audioProvider.notifier).playPrevious(),
+                ),
                 const SizedBox(width: 16),
                 FilledButton.icon(
                   style: FilledButton.styleFrom(
@@ -172,62 +135,15 @@ class PlayerScreen extends ConsumerWidget {
                       ref.read(audioProvider.notifier).togglePlayPause(),
                 ),
                 const SizedBox(width: 16),
-                if (isEpisode)
-                  // 30s forward for podcasts
-                  IconButton(
-                    iconSize: 32,
-                    icon: const Icon(Icons.forward_30),
-                    onPressed: () {
-                      final newPos = playerState.position +
-                          const Duration(seconds: 30);
-                      ref.read(audioProvider.notifier).seek(
-                            newPos > playerState.duration
-                                ? playerState.duration
-                                : newPos,
-                          );
-                    },
-                  )
-                else
-                  IconButton(
-                    iconSize: 36,
-                    icon: const Icon(Icons.skip_next),
-                    onPressed: () =>
-                        ref.read(audioProvider.notifier).playNext(),
-                  ),
+                IconButton(
+                  iconSize: 36,
+                  icon: const Icon(Icons.skip_next),
+                  onPressed: () =>
+                      ref.read(audioProvider.notifier).playNext(),
+                ),
               ],
             ),
             const Spacer(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showSpeedSheet(BuildContext context, WidgetRef ref) {
-    final speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0];
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('Playback Speed',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            ),
-            ...speeds.map((speed) {
-              final current = ref.read(audioProvider).playbackSpeed;
-              return ListTile(
-                title: Text('${speed}x'),
-                trailing:
-                    speed == current ? const Icon(Icons.check) : null,
-                onTap: () {
-                  ref.read(audioProvider.notifier).setPlaybackSpeed(speed);
-                  Navigator.pop(context);
-                },
-              );
-            }),
           ],
         ),
       ),
@@ -282,9 +198,7 @@ class PlayerScreen extends ConsumerWidget {
     final hours = d.inHours;
     final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    if (hours > 0) {
-      return '$hours:$minutes:$seconds';
-    }
+    if (hours > 0) return '$hours:$minutes:$seconds';
     return '$minutes:$seconds';
   }
 }
