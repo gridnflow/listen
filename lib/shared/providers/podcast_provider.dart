@@ -43,13 +43,15 @@ final podcastEpisodesProvider =
 
 class DownloadNotifier extends StateNotifier<Map<int, int>> {
   final Ref _ref;
+  String? lastError;
 
   DownloadNotifier(this._ref) : super({});
 
-  Future<void> downloadEpisode(Episode episode, int podcastId) async {
-    if (state.containsKey(episode.id)) return; // Already downloading
+  Future<bool> downloadEpisode(Episode episode, int podcastId) async {
+    if (state.containsKey(episode.id)) return false; // Already downloading
 
     state = {...state, episode.id: 0};
+    lastError = null;
 
     try {
       await _ref.read(podcastDownloadServiceProvider).downloadEpisode(
@@ -62,10 +64,12 @@ class DownloadNotifier extends StateNotifier<Map<int, int>> {
                   .updateEpisodeDownloadProgress(episode.id, progress);
             },
           );
+      return true;
     } catch (e) {
-      // Reset on failure
+      lastError = e.toString();
       await AppDatabase.instance
           .updateEpisodeDownloadProgress(episode.id, 0);
+      return false;
     } finally {
       state = Map.from(state)..remove(episode.id);
     }
