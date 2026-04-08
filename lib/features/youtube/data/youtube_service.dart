@@ -25,18 +25,30 @@ class YoutubeSearchResult {
 
 class YoutubeService {
   final _yt = YoutubeExplode();
+  VideoSearchList? _lastPage;
 
   Future<List<YoutubeSearchResult>> search(String query) async {
-    final results = await _yt.search.search(query);
-    return results.whereType<SearchVideo>().map((v) {
+    final page = await _yt.search.search(query);
+    _lastPage = page;
+    return _mapResults(page);
+  }
+
+  Future<List<YoutubeSearchResult>> loadMore() async {
+    if (_lastPage == null) return [];
+    final next = await _lastPage!.nextPage();
+    if (next == null) return [];
+    _lastPage = next;
+    return _mapResults(next);
+  }
+
+  List<YoutubeSearchResult> _mapResults(VideoSearchList page) {
+    return page.map((v) {
       return YoutubeSearchResult(
         videoId: v.id.value,
         title: v.title,
         channelName: v.author,
-        thumbnailUrl: v.thumbnails.isNotEmpty
-            ? v.thumbnails.first.url.toString()
-            : null,
-        duration: _parseDuration(v.duration),
+        thumbnailUrl: v.thumbnails.mediumResUrl,
+        duration: v.duration,
       );
     }).toList();
   }
@@ -97,20 +109,6 @@ class YoutubeService {
         ),
       );
     }
-  }
-
-  Duration? _parseDuration(dynamic value) {
-    if (value == null) return null;
-    if (value is Duration) return value;
-    if (value is String) {
-      final parts = value.split(':').map(int.tryParse).toList();
-      if (parts.length == 2) {
-        return Duration(minutes: parts[0] ?? 0, seconds: parts[1] ?? 0);
-      } else if (parts.length == 3) {
-        return Duration(hours: parts[0] ?? 0, minutes: parts[1] ?? 0, seconds: parts[2] ?? 0);
-      }
-    }
-    return null;
   }
 
   void dispose() => _yt.close();

@@ -12,16 +12,33 @@ class YoutubeSearchScreen extends StatefulWidget {
 class _YoutubeSearchScreenState extends State<YoutubeSearchScreen> {
   final _service = YoutubeService();
   final _controller = TextEditingController();
+  final _scrollController = ScrollController();
   List<YoutubeSearchResult> _results = [];
   bool _searching = false;
+  bool _hasSearched = false;
+  bool _loadingMore = false;
   // videoId -> download progress (0.0–1.0), null = not downloading, 1.0 = done
   final Map<String, double> _downloadProgress = {};
 
   @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
+    _scrollController.dispose();
     _service.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMore();
+    }
   }
 
   Future<void> _search() async {
@@ -31,18 +48,38 @@ class _YoutubeSearchScreenState extends State<YoutubeSearchScreen> {
     setState(() {
       _searching = true;
       _results = [];
+      _hasSearched = false;
     });
     try {
       final results = await _service.search(q);
-      setState(() => _results = results);
+      setState(() {
+        _results = results;
+        _hasSearched = true;
+      });
     } catch (e) {
       if (mounted) {
+        setState(() => _hasSearched = true);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Search failed: $e')),
         );
       }
     } finally {
       if (mounted) setState(() => _searching = false);
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_loadingMore || _searching || !_hasSearched) return;
+    setState(() => _loadingMore = true);
+    try {
+      final more = await _service.loadMore();
+      if (mounted && more.isNotEmpty) {
+        setState(() => _results.addAll(more));
+      }
+    } catch (_) {
+      // silently ignore load-more errors
+    } finally {
+      if (mounted) setState(() => _loadingMore = false);
     }
   }
 
@@ -104,33 +141,43 @@ class _YoutubeSearchScreenState extends State<YoutubeSearchScreen> {
           ),
           if (_searching)
             const Expanded(child: Center(child: CircularProgressIndicator()))
+          else if (_results.isEmpty && _hasSearched)
+            const Expanded(child: Center(child: Text('No results found')))
           else
             Expanded(
               child: ListView.builder(
-                itemCount: _results.length,
+                controller: _scrollController,
+                itemCount: _results.length + (_loadingMore ? 1 : 0),
                 itemBuilder: (context, i) {
+                  if (i == _results.length) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+
                   final r = _results[i];
                   final progress = _downloadProgress[r.videoId];
                   final isDone = progress == 1.0;
                   final isDownloading = progress != null && !isDone;
 
                   return ListTile(
-                    leading: r.thumbnailUrl != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: CachedNetworkImage(
-                              imageUrl: r.thumbnailUrl!,
-                              width: 72,
-                              height: 48,
-                              fit: BoxFit.cover,
-                              placeholder: (ctx, url) => Container(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest,
-                              ),
-                            ),
-                          )
-                        : const Icon(Icons.music_video),
+                    leading: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: CachedNetworkImage(
+                        imageUrl: r.thumbnailUrl!,
+                        width: 72,
+                        height: 48,
+                        fit: BoxFit.cover,
+                        placeholder: (ctx, url) => Container(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest,
+                        ),
+                        errorWidget: (ctx, url, err) =>
+                            const Icon(Icons.music_video),
+                      ),
+                    ),
                     title: Text(r.title, maxLines: 2, overflow: TextOverflow.ellipsis),
                     subtitle: Text(
                       '${r.channelName}${r.duration != null ? '  ·  ${_formatDuration(r.duration)}' : ''}',
