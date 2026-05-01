@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const _seed = Color(0xFF6C63FF);
+  // Extracted from logo: orange-red to hot-pink gradient
+  static const seedColor = Color(0xFFE8401A);
+
+  // Gradient colors matching the logo
+  static const gradientStart = Color(0xFFFF6B35); // orange
+  static const gradientEnd = Color(0xFFE91E8C);   // hot pink
 
   static ThemeData get darkTheme => ThemeData(
         brightness: Brightness.dark,
-        colorSchemeSeed: _seed,
+        colorSchemeSeed: seedColor,
         useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFF0A0A0F),
+        scaffoldBackgroundColor: const Color(0xFF0D0A0A),
         appBarTheme: const AppBarTheme(
           centerTitle: true,
           elevation: 0,
@@ -24,7 +29,7 @@ class AppTheme {
           elevation: 0,
           height: 72,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          indicatorColor: _seed.withAlpha(51),
+          indicatorColor: seedColor.withAlpha(60),
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
@@ -38,7 +43,7 @@ class AppTheme {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: _seed, width: 1.5),
+            borderSide: const BorderSide(color: gradientStart, width: 1.5),
           ),
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -51,7 +56,7 @@ class AppTheme {
 
   static ThemeData get lightTheme => ThemeData(
         brightness: Brightness.light,
-        colorSchemeSeed: _seed,
+        colorSchemeSeed: seedColor,
         useMaterial3: true,
         appBarTheme: const AppBarTheme(
           centerTitle: true,
@@ -69,7 +74,7 @@ class AppTheme {
           elevation: 0,
           height: 72,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          indicatorColor: _seed.withAlpha(30),
+          indicatorColor: seedColor.withAlpha(35),
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
@@ -83,7 +88,7 @@ class AppTheme {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: _seed, width: 1.5),
+            borderSide: const BorderSide(color: gradientStart, width: 1.5),
           ),
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

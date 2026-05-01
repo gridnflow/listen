@@ -52,8 +52,8 @@ class MiniPlayer extends ConsumerWidget {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            const Color(0xFF6C63FF).withAlpha(180),
-                            const Color(0xFF3D35B5).withAlpha(220),
+                            const Color(0xFFFF6B35).withAlpha(200),
+                            const Color(0xFFE91E8C).withAlpha(220),
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,

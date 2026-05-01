@@ -36,7 +36,7 @@ class LibraryScreen extends ConsumerWidget {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        const Color(0xFF6C63FF).withAlpha(38),
+                        const Color(0xFFFF6B35).withAlpha(38),
                         Colors.transparent,
                       ],
                       begin: Alignment.topCenter,

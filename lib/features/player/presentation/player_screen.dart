@@ -44,7 +44,7 @@ class PlayerScreen extends ConsumerWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              const Color(0xFF6C63FF).withAlpha(18),
+              const Color(0xFFFF6B35).withAlpha(20),
               Colors.transparent,
             ],
             begin: Alignment.topCenter,
@@ -64,8 +64,8 @@ class PlayerScreen extends ConsumerWidget {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        const Color(0xFF4A3FA8).withAlpha(200),
-                        const Color(0xFF1A1560).withAlpha(240),
+                        const Color(0xFFFF6B35).withAlpha(200),
+                        const Color(0xFFE91E8C).withAlpha(240),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -73,7 +73,7 @@ class PlayerScreen extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF6C63FF).withAlpha(60),
+                        color: const Color(0xFFE8401A).withAlpha(60),
                         blurRadius: 40,
                         offset: const Offset(0, 16),
                       ),

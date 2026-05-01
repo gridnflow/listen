@@ -20,7 +20,7 @@ class SettingsScreen extends StatelessWidget {
                 height: 40,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF6C63FF), Color(0xFF3D35B5)],
+                    colors: [Color(0xFFFF6B35), Color(0xFFE91E8C)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),

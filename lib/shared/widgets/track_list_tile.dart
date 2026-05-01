@@ -24,7 +24,7 @@ class TrackListTile extends StatelessWidget {
         height: 50,
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFF4A3FA8), Color(0xFF1A1560)],
+            colors: [Color(0xFFFF6B35), Color(0xFFE91E8C)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
