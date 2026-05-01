@@ -17,56 +17,100 @@ class TrackListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return ListTile(
       leading: Container(
-        width: 48,
-        height: 48,
+        width: 50,
+        height: 50,
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF4A3FA8), Color(0xFF1A1560)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: const Icon(Icons.music_note),
+        child: const Icon(Icons.music_note, size: 22, color: Colors.white70),
       ),
       title: Text(
         track.title,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontWeight: FontWeight.w500),
       ),
       subtitle: Text(
         track.artist,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontSize: 13,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
       ),
-      trailing: SizedBox(
-        width: onDelete != null ? 96 : 48,
-        child: Row(
+      trailing: onDelete != null
+          ? IconButton(
+              icon: Icon(Icons.delete_outline,
+                  color: theme.colorScheme.onSurfaceVariant),
+              onPressed: () => _confirmDelete(context),
+            )
+          : null,
+      onTap: onTap,
+      onLongPress: () => _showContextMenu(context),
+    );
+  }
+
+  void _showContextMenu(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            IconButton(
-              icon: const Icon(Icons.youtube_searched_for),
-              tooltip: 'Search on YouTube',
-              onPressed: () => _searchYoutube(track.title, track.artist),
+            const SizedBox(height: 8),
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.outlineVariant,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.youtube_searched_for),
+              title: const Text('Search on YouTube'),
+              onTap: () {
+                Navigator.pop(context);
+                _searchYoutube(track.title, track.artist);
+              },
             ),
             if (onDelete != null)
-              IconButton(
-                icon: const Icon(Icons.delete_outline),
-                onPressed: () => _confirmDelete(context),
+              ListTile(
+                leading:
+                    Icon(Icons.delete_outline, color: Colors.red.shade400),
+                title: Text('Delete',
+                    style: TextStyle(color: Colors.red.shade400)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _confirmDelete(context);
+                },
               ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
-      onTap: onTap,
     );
   }
 
   Future<void> _searchYoutube(String title, String artist) async {
     final query = Uri.encodeQueryComponent('$title $artist');
-    final url = Uri.parse('https://www.youtube.com/results?search_query=$query');
+    final url =
+        Uri.parse('https://www.youtube.com/results?search_query=$query');
     await launchUrl(url, mode: LaunchMode.externalApplication);
   }
 
   void _confirmDelete(BuildContext context) {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete track'),
@@ -81,7 +125,8 @@ class TrackListTile extends StatelessWidget {
               Navigator.pop(context);
               onDelete?.call();
             },
-            child: const Text('Delete'),
+            child: Text('Delete',
+                style: TextStyle(color: Colors.red.shade400)),
           ),
         ],
       ),

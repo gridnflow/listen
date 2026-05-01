@@ -145,19 +145,22 @@ class AudioNotifier extends StateNotifier<PlayerState> {
   final ListenAudioHandler _handler;
   Timer? _sleepTimer;
   Timer? _sleepCountdown;
+  late final List<StreamSubscription<dynamic>> _subscriptions;
 
   AudioNotifier(this._handler) : super(const PlayerState()) {
-    _handler.player.playerStateStream.listen((playerState) {
-      state = state.copyWith(isPlaying: playerState.playing);
-    });
-    _handler.player.durationStream.listen((duration) {
-      if (duration != null) {
-        state = state.copyWith(duration: duration);
-      }
-    });
-    _handler.player.positionStream.listen((position) {
-      state = state.copyWith(position: position);
-    });
+    _subscriptions = [
+      _handler.player.playerStateStream.listen((playerState) {
+        state = state.copyWith(isPlaying: playerState.playing);
+      }),
+      _handler.player.durationStream.listen((duration) {
+        if (duration != null) {
+          state = state.copyWith(duration: duration);
+        }
+      }),
+      _handler.player.positionStream.listen((position) {
+        state = state.copyWith(position: position);
+      }),
+    ];
     _handler.onTrackCompleted = playNext;
     _handler.onSkipToPrevious = playPrevious;
   }
@@ -203,7 +206,7 @@ class AudioNotifier extends StateNotifier<PlayerState> {
       await playTrack(state.queue[nextIndex]);
     } else {
       await _handler.stop();
-      state = state.copyWith(isPlaying: false);
+      state = state.copyWith(isPlaying: false, clearTrack: true);
     }
   }
 
@@ -249,6 +252,9 @@ class AudioNotifier extends StateNotifier<PlayerState> {
   void dispose() {
     _sleepTimer?.cancel();
     _sleepCountdown?.cancel();
+    for (final sub in _subscriptions) {
+      sub.cancel();
+    }
     _handler.dispose();
     super.dispose();
   }

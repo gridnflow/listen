@@ -13,75 +13,111 @@ class LibraryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tracksAsync = ref.watch(allTracksProvider);
     final libraryState = ref.watch(libraryProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Library'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.youtube_searched_for),
-            tooltip: 'Download from YouTube',
-            onPressed: () => context.push('/library/youtube'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.phone_android),
-            tooltip: 'Scan device audio',
-            onPressed: libraryState.isScanning
-                ? null
-                : () async {
-                    final count = await ref
-                        .read(libraryProvider.notifier)
-                        .scanDeviceAudio();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Found $count new tracks')),
-                      );
-                    }
-                  },
-          ),
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: 'Import files',
-            onPressed: () => ref.read(libraryProvider.notifier).importFiles(),
-          ),
-        ],
-      ),
-      body: libraryState.isScanning
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Scanning device audio...'),
-                ],
+      body: tracksAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('Error: $e')),
+        data: (tracks) => CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              pinned: true,
+              expandedHeight: 110,
+              flexibleSpace: FlexibleSpaceBar(
+                title: Text(
+                  'Library',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                background: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFF6C63FF).withAlpha(38),
+                        Colors.transparent,
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                ),
               ),
-            )
-          : tracksAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
-              data: (tracks) {
-                if (tracks.isEmpty) {
-                  return const _EmptyLibrary();
-                }
-                return ListView.builder(
-                  itemCount: tracks.length,
-                  itemBuilder: (context, index) {
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.youtube_searched_for),
+                  tooltip: 'Download from YouTube',
+                  onPressed: () => context.push('/library/youtube'),
+                ),
+                IconButton(
+                  icon: libraryState.isScanning
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.phone_android),
+                  tooltip: 'Scan device audio',
+                  onPressed: libraryState.isScanning
+                      ? null
+                      : () async {
+                          final count = await ref
+                              .read(libraryProvider.notifier)
+                              .scanDeviceAudio();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content: Text('Found $count new tracks')),
+                            );
+                          }
+                        },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  tooltip: 'Import files',
+                  onPressed: () =>
+                      ref.read(libraryProvider.notifier).importFiles(),
+                ),
+              ],
+            ),
+            if (tracks.isEmpty)
+              const SliverFillRemaining(child: _EmptyLibrary())
+            else ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                  child: Text(
+                    '${tracks.length} ${tracks.length == 1 ? 'track' : 'tracks'}',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ),
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
                     final track = tracks[index];
                     return TrackListTile(
                       track: track,
-                      onTap: () {
-                        ref
-                            .read(audioProvider.notifier)
-                            .playQueue(tracks, startIndex: index);
-                      },
+                      onTap: () => ref
+                          .read(audioProvider.notifier)
+                          .playQueue(tracks, startIndex: index),
                       onDelete: () =>
                           ref.read(libraryProvider.notifier).deleteTrack(track),
                     );
                   },
-                );
-              },
-            ),
+                  childCount: tracks.length,
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
@@ -91,27 +127,31 @@ class _EmptyLibrary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             Icons.library_music_outlined,
-            size: 80,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            size: 72,
+            color: theme.colorScheme.onSurfaceVariant.withAlpha(120),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Text(
             'Your library is empty',
-            style: Theme.of(context).textTheme.titleLarge,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'Tap the phone icon to scan device audio\nor + to import files',
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              height: 1.6,
+            ),
           ),
         ],
       ),

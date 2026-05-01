@@ -11,6 +11,7 @@ class PlaylistsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final playlistsAsync = ref.watch(allPlaylistsProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -29,27 +30,22 @@ class PlaylistsScreen extends ConsumerWidget {
           if (playlists.isEmpty) {
             return const _EmptyPlaylists();
           }
-          return ListView.builder(
+          return GridView.builder(
+            padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 1.0,
+            ),
             itemCount: playlists.length,
             itemBuilder: (context, index) {
               final playlist = playlists[index];
-              return ListTile(
-                leading: Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color:
-                        Theme.of(context).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.playlist_play),
-                ),
-                title: Text(playlist.name),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: () => _confirmDelete(context, playlist),
-                ),
+              return _PlaylistCard(
+                playlist: playlist,
                 onTap: () => context.go('/playlists/${playlist.id}'),
+                onDelete: () => _confirmDelete(context, playlist),
+                theme: theme,
               );
             },
           );
@@ -66,7 +62,7 @@ class PlaylistsScreen extends ConsumerWidget {
   }
 
   void _confirmDelete(BuildContext context, Playlist playlist) {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete playlist'),
@@ -81,9 +77,100 @@ class PlaylistsScreen extends ConsumerWidget {
               AppDatabase.instance.deletePlaylist(playlist.id);
               Navigator.pop(context);
             },
-            child: const Text('Delete'),
+            child:
+                Text('Delete', style: TextStyle(color: Colors.red.shade400)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PlaylistCard extends StatelessWidget {
+  final Playlist playlist;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
+  final ThemeData theme;
+
+  const _PlaylistCard({
+    required this.playlist,
+    required this.onTap,
+    required this.onDelete,
+    required this.theme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: theme.colorScheme.surfaceContainerHigh,
+      child: InkWell(
+        onTap: onTap,
+        onLongPress: () => _showContextMenu(context),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF6C63FF), Color(0xFF3D35B5)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.queue_music_rounded,
+                    color: Colors.white70, size: 26),
+              ),
+              const Spacer(),
+              Text(
+                playlist.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showContextMenu(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Theme.of(ctx).colorScheme.outlineVariant,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: Icon(Icons.delete_outline, color: Colors.red.shade400),
+              title: Text('Delete',
+                  style: TextStyle(color: Colors.red.shade400)),
+              onTap: () {
+                Navigator.pop(ctx);
+                onDelete();
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }
@@ -125,7 +212,7 @@ class _CreatePlaylistDialogState extends State<_CreatePlaylistDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancel'),
         ),
-        TextButton(
+        FilledButton(
           onPressed: _submit,
           child: const Text('Create'),
         ),
@@ -139,26 +226,29 @@ class _EmptyPlaylists extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.playlist_add,
-            size: 80,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            Icons.playlist_add_rounded,
+            size: 72,
+            color: theme.colorScheme.onSurfaceVariant.withAlpha(120),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Text(
             'No playlists yet',
-            style: Theme.of(context).textTheme.titleLarge,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'Tap + to create a playlist',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),

@@ -23,6 +23,12 @@ class YoutubeSearchResult {
   });
 }
 
+class CancellationToken {
+  bool _cancelled = false;
+  bool get isCancelled => _cancelled;
+  void cancel() => _cancelled = true;
+}
+
 class YoutubeService {
   final _yt = YoutubeExplode();
   VideoSearchList? _lastPage;
@@ -54,9 +60,11 @@ class YoutubeService {
   }
 
   /// Downloads audio and saves to library. Calls [onProgress] with 0.0–1.0.
+  /// Throws [CancelledException] if [cancellationToken] is cancelled mid-download.
   Future<void> downloadAudio(
     YoutubeSearchResult result, {
     required void Function(double) onProgress,
+    CancellationToken? cancellationToken,
   }) async {
     final manifest =
         await _yt.videos.streamsClient.getManifest(result.videoId);
@@ -64,52 +72,69 @@ class YoutubeService {
 
     final dir = await getApplicationDocumentsDirectory();
     final downloadsDir = Directory('${dir.path}/youtube_downloads');
-    if (!await downloadsDir.exists()) await downloadsDir.create(recursive: true);
+    if (!await downloadsDir.exists()) {
+      await downloadsDir.create(recursive: true);
+    }
 
-    // Sanitize filename
     final safeName = result.title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
-    final filePath = '${downloadsDir.path}/$safeName.mp3';
+    final filePath = '${downloadsDir.path}/$safeName.m4a';
 
-    final stream = _yt.videos.streamsClient.get(streamInfo);
+    // Skip re-download if already in library
+    final existing = await AppDatabase.instance.findTrackByPath(filePath);
+    if (existing != null) return;
+
     final file = File(filePath);
     final sink = file.openWrite();
-
     final totalBytes = streamInfo.size.totalBytes;
     int received = 0;
 
-    await for (final chunk in stream) {
-      sink.add(chunk);
-      received += chunk.length;
-      onProgress(totalBytes > 0 ? received / totalBytes : 0);
+    try {
+      await for (final chunk in _yt.videos.streamsClient.get(streamInfo)) {
+        if (cancellationToken?.isCancelled == true) {
+          throw const CancelledException();
+        }
+        sink.add(chunk);
+        received += chunk.length;
+        onProgress(totalBytes > 0 ? received / totalBytes : 0);
+      }
+      await sink.flush();
+    } catch (_) {
+      await sink.close();
+      if (await file.exists()) await file.delete();
+      rethrow;
     }
-    await sink.flush();
     await sink.close();
 
-    // Get duration
     int durationMs = result.duration?.inMilliseconds ?? 0;
     if (durationMs == 0) {
+      final player = AudioPlayer();
       try {
-        final player = AudioPlayer();
         final d = await player.setFilePath(filePath);
         durationMs = d?.inMilliseconds ?? 0;
+      } catch (_) {
+        // duration is optional — proceed without it
+      } finally {
         await player.dispose();
-      } catch (_) {}
+      }
     }
 
-    // Save to library
-    final existing = await AppDatabase.instance.findTrackByPath(filePath);
-    if (existing == null) {
-      await AppDatabase.instance.insertTrack(
-        AudioTracksCompanion.insert(
-          title: result.title,
-          artist: Value(result.channelName),
-          filePath: filePath,
-          durationMs: Value(durationMs),
-          fileSize: Value(await file.length()),
-        ),
-      );
-    }
+    await AppDatabase.instance.insertTrack(
+      AudioTracksCompanion.insert(
+        title: result.title,
+        artist: Value(result.channelName),
+        filePath: filePath,
+        durationMs: Value(durationMs),
+        fileSize: Value(await file.length()),
+      ),
+    );
   }
 
   void dispose() => _yt.close();
+}
+
+class CancelledException implements Exception {
+  const CancelledException();
+
+  @override
+  String toString() => 'Download cancelled';
 }
