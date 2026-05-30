@@ -1,5 +1,6 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
@@ -7,7 +8,8 @@ import 'core/services/database.dart';
 import 'shared/providers/audio_provider.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   AppDatabase.instance;
 
@@ -26,6 +28,8 @@ void main() async {
       audioHandlerProvider.overrideWithValue(audioHandler),
     ],
   );
+
+  FlutterNativeSplash.remove();
 
   runApp(
     UncontrolledProviderScope(

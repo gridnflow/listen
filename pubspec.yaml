@@ -36,6 +36,14 @@ dependencies:
   dio: ^5.7.0
   cached_network_image: ^3.4.1
 
+  # Splash
+  flutter_native_splash: ^2.4.3
+
+  # Firebase
+  firebase_core: ^3.13.0
+  firebase_analytics: ^11.4.5
+  google_sign_in: ^6.2.2
+
   # UI
   cupertino_icons: ^1.0.8
   url_launcher: ^6.3.0
@@ -57,6 +65,16 @@ flutter_launcher_icons:
   image_path: "assets/icon/app_icon.png"
   adaptive_icon_background: "#ffffff"
   adaptive_icon_foreground: "assets/icon/app_icon.png"
+  android_generate_round_icons: true
+
+flutter_native_splash:
+  color: "#ffffff"
+  image: assets/icon/app_icon.png
+  android: true
+  ios: false
+  android_12:
+    image: assets/icon/app_icon.png
+    color: "#ffffff"
 
 flutter:
   uses-material-design: true

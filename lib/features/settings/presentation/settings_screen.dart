@@ -1,7 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
+
+  static const _privacyPolicyUrl =
+      'https://gridnflow.com/listen/privacy-policy';
+
+  Future<void> _openPrivacyPolicy(BuildContext context) async {
+    final uri = Uri.parse(_privacyPolicyUrl);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open privacy policy')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,6 +26,26 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         children: [
+          _SectionHeader(title: 'Legal', theme: theme),
+          Card(
+            color: theme.colorScheme.surfaceContainerHigh,
+            child: ListTile(
+              leading: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.privacy_tip_outlined,
+                    color: theme.colorScheme.primary, size: 20),
+              ),
+              title: const Text('Privacy Policy'),
+              trailing: Icon(Icons.open_in_new,
+                  color: theme.colorScheme.onSurfaceVariant, size: 18),
+              onTap: () => _openPrivacyPolicy(context),
+            ),
+          ),
           _SectionHeader(title: 'About', theme: theme),
           Card(
             color: theme.colorScheme.surfaceContainerHigh,
@@ -42,7 +77,7 @@ class SettingsScreen extends StatelessWidget {
                   context: context,
                   applicationName: 'Listen',
                   applicationVersion: '0.1.0',
-                  applicationLegalese: 'Offline audio player',
+                  applicationLegalese: '© 2025 Gridnflow',
                 );
               },
             ),
