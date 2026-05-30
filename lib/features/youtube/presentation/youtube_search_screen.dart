@@ -117,8 +117,18 @@ class _YoutubeSearchScreenState extends State<YoutubeSearchScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _downloads.remove(result.videoId));
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Download failed: $e')),
+        showDialog<void>(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Download failed'),
+            content: Text(e.toString()),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
         );
       }
     }

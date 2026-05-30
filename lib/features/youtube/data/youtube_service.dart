@@ -59,16 +59,22 @@ class YoutubeService {
     }).toList();
   }
 
-  /// Downloads audio and saves to library. Calls [onProgress] with 0.0–1.0.
-  /// Throws [CancelledException] if [cancellationToken] is cancelled mid-download.
   Future<void> downloadAudio(
     YoutubeSearchResult result, {
     required void Function(double) onProgress,
     CancellationToken? cancellationToken,
   }) async {
-    final manifest =
-        await _yt.videos.streamsClient.getManifest(result.videoId);
+    // ignore: avoid_print
+    print('[YT] getManifest start: ${result.videoId}');
+    final manifest = await _yt.videos.streamsClient
+        .getManifest(result.videoId)
+        .timeout(const Duration(seconds: 30));
+    // ignore: avoid_print
+    print('[YT] getManifest done, streams: ${manifest.audioOnly.length}');
+
     final streamInfo = manifest.audioOnly.withHighestBitrate();
+    // ignore: avoid_print
+    print('[YT] streamInfo: ${streamInfo.codec.mimeType} ${streamInfo.size.totalBytes} bytes');
 
     final dir = await getApplicationDocumentsDirectory();
     final downloadsDir = Directory('${dir.path}/youtube_downloads');
@@ -77,9 +83,9 @@ class YoutubeService {
     }
 
     final safeName = result.title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
-    final filePath = '${downloadsDir.path}/$safeName.m4a';
+    final ext = streamInfo.codec.mimeType.contains('webm') ? 'webm' : 'm4a';
+    final filePath = '${downloadsDir.path}/$safeName.$ext';
 
-    // Skip re-download if already in library
     final existing = await AppDatabase.instance.findTrackByPath(filePath);
     if (existing != null) return;
 
@@ -88,8 +94,14 @@ class YoutubeService {
     final totalBytes = streamInfo.size.totalBytes;
     int received = 0;
 
+    // ignore: avoid_print
+    print('[YT] starting stream download to $filePath');
     try {
-      await for (final chunk in _yt.videos.streamsClient.get(streamInfo)) {
+      // Use youtube_explode_dart's own HTTP client — it carries the correct
+      // signed headers (visitor-data, po-token, etc.) that Google requires.
+      await for (final chunk in _yt.videos.streamsClient
+          .get(streamInfo)
+          .timeout(const Duration(minutes: 10))) {
         if (cancellationToken?.isCancelled == true) {
           throw const CancelledException();
         }
@@ -98,12 +110,12 @@ class YoutubeService {
         onProgress(totalBytes > 0 ? received / totalBytes : 0);
       }
       await sink.flush();
-    } catch (_) {
+      await sink.close();
+    } catch (e) {
       await sink.close();
       if (await file.exists()) await file.delete();
       rethrow;
     }
-    await sink.close();
 
     int durationMs = result.duration?.inMilliseconds ?? 0;
     if (durationMs == 0) {
@@ -112,7 +124,6 @@ class YoutubeService {
         final d = await player.setFilePath(filePath);
         durationMs = d?.inMilliseconds ?? 0;
       } catch (_) {
-        // duration is optional — proceed without it
       } finally {
         await player.dispose();
       }
