@@ -59,11 +59,12 @@ class SettingsScreen extends StatelessWidget {
               trailing: Icon(Icons.chevron_right,
                   color: theme.colorScheme.onSurfaceVariant),
               onTap: () {
-                showAboutDialog(
+                showDialog(
                   context: context,
-                  applicationName: 'Listen',
-                  applicationVersion: '0.1.0',
-                  applicationLegalese: '© 2025 Gridnflow',
+                  builder: (_) => const AlertDialog(
+                    title: Text('Listen'),
+                    content: Text('Version 0.1.0\n© 2025 Gridnflow'),
+                  ),
                 );
               },
             ),
