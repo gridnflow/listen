@@ -103,9 +103,19 @@ class LibraryScreen extends ConsumerWidget {
                     final track = tracks[index];
                     return TrackListTile(
                       track: track,
-                      onTap: () => ref
-                          .read(audioProvider.notifier)
-                          .playQueue(tracks, startIndex: index),
+                      onTap: () async {
+                        try {
+                          await ref
+                              .read(audioProvider.notifier)
+                              .playQueue(tracks, startIndex: index);
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Cannot play: $e')),
+                            );
+                          }
+                        }
+                      },
                       onDelete: () =>
                           ref.read(libraryProvider.notifier).deleteTrack(track),
                     );

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -168,10 +169,19 @@ class AudioNotifier extends StateNotifier<PlayerState> {
   Stream<Duration> get positionStream => _handler.player.positionStream;
 
   Future<void> playTrack(AudioTrack track) async {
-    state = state.copyWith(currentTrack: track);
-    await _handler.setTrack(track);
-    await _handler.play();
-    AppDatabase.instance.updateLastPlayed(track.id);
+    final file = File(track.filePath);
+    if (!await file.exists()) {
+      throw Exception('File not found: ${track.filePath}');
+    }
+    try {
+      state = state.copyWith(currentTrack: track);
+      await _handler.setTrack(track);
+      await _handler.play();
+      AppDatabase.instance.updateLastPlayed(track.id);
+    } catch (e) {
+      state = state.copyWith(isPlaying: false, clearTrack: true);
+      rethrow;
+    }
   }
 
   Future<void> playQueue(List<AudioTrack> tracks, {int startIndex = 0}) async {
