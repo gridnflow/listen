@@ -6,6 +6,7 @@ import '../../features/library/presentation/library_screen.dart';
 import '../../features/player/presentation/player_screen.dart';
 import '../../features/playlist/presentation/playlist_detail_screen.dart';
 import '../../features/playlist/presentation/playlists_screen.dart';
+import '../../features/settings/presentation/privacy_policy_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/youtube/presentation/youtube_search_screen.dart';
 import '../../shared/providers/audio_provider.dart';
@@ -43,6 +44,12 @@ final appRouter = GoRouter(
         GoRoute(
           path: '/settings',
           builder: (context, state) => const SettingsScreen(),
+          routes: [
+            GoRoute(
+              path: 'privacy-policy',
+              builder: (context, state) => const PrivacyPolicyScreen(),
+            ),
+          ],
         ),
       ],
     ),
