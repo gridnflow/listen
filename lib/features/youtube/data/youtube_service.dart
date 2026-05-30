@@ -64,17 +64,11 @@ class YoutubeService {
     required void Function(double) onProgress,
     CancellationToken? cancellationToken,
   }) async {
-    // ignore: avoid_print
-    print('[YT] getManifest start: ${result.videoId}');
     final manifest = await _yt.videos.streamsClient
         .getManifest(result.videoId)
         .timeout(const Duration(seconds: 30));
-    // ignore: avoid_print
-    print('[YT] getManifest done, streams: ${manifest.audioOnly.length}');
 
     final streamInfo = manifest.audioOnly.withHighestBitrate();
-    // ignore: avoid_print
-    print('[YT] streamInfo: ${streamInfo.codec.mimeType} ${streamInfo.size.totalBytes} bytes');
 
     final dir = await getApplicationDocumentsDirectory();
     final downloadsDir = Directory('${dir.path}/youtube_downloads');
@@ -94,8 +88,6 @@ class YoutubeService {
     final totalBytes = streamInfo.size.totalBytes;
     int received = 0;
 
-    // ignore: avoid_print
-    print('[YT] starting stream download to $filePath');
     try {
       // Use youtube_explode_dart's own HTTP client — it carries the correct
       // signed headers (visitor-data, po-token, etc.) that Google requires.
