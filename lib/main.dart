@@ -16,7 +16,7 @@ void main() async {
   final audioHandler = await AudioService.init(
     builder: () => ListenAudioHandler(),
     config: const AudioServiceConfig(
-      androidNotificationChannelId: 'com.listen.audio',
+      androidNotificationChannelId: 'com.gridnflow.savetune.audio',
       androidNotificationChannelName: 'Listen Audio',
       androidNotificationOngoing: true,
       androidStopForegroundOnPause: true,
